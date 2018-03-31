@@ -7,7 +7,12 @@ import (
 	"io"
 	"strings"
 	"runtime"
+	"time"
+	"os/signal"
+	"syscall"
 )
+
+var RunningProcess *os.Process
 
 func OriginalExecutablePath() string {
 	exeName, _ := os.Executable()
@@ -58,6 +63,12 @@ func init() {
 	}
 
 	if isSupervisor {
+		var killSignalReceived = make(chan os.Signal)
+		signal.Notify(killSignalReceived, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
+		go func() {
+				<-killSignalReceived
+				RunningProcess.Kill()
+		}()
 		args := os.Args[1:]
 		for i, arg := range args {
 			if arg == "-supervisor" {
@@ -71,13 +82,22 @@ func init() {
 			cmd := exec.Command(exeName, args...)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
-			if run_err := cmd.Run(); run_err != nil {
+			if err := cmd.Start(); err != nil {
+				log.Println("error when starting new process", err.Error())
+				time.Sleep(time.Second)
+				continue
+			}
+
+			RunningProcess = cmd.Process
+
+			if cmd_err := cmd.Wait(); cmd_err != nil {
 				log.Println("process finished with different from zero code, restarting..")
-				log.Println("Finished with response: ", run_err.Error())
+				log.Println("Finished with response: ", cmd_err.Error())
 			} else {
 				log.Println("process finished with code 0, supervisor shutting down..")
 				os.Exit(0)
 			}
+			RunningProcess = nil
 		}
 	}
 
