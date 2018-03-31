@@ -40,7 +40,7 @@ func init() {
 		}
 	}
 
-	log.Println("golang-supervisor init", os.Args)
+	log.Println("golang-supervisor init", os.Args, os.Getpid())
 
 	if !isSupervisor && !isSupervised {
 		newExeName := duplicateExecutable("supervisor")
