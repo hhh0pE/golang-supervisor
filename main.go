@@ -52,7 +52,6 @@ func init() {
 	}
 
 	if isSupervisor {
-		exeName := duplicateExecutable("running")
 		args := os.Args[1:]
 		for i, arg := range args {
 			if arg == "-supervisor" {
@@ -62,6 +61,7 @@ func init() {
 		}
 		args = append(args, "-supervised")
 		for {
+			exeName := duplicateExecutable("running")
 			cmd := exec.Command(exeName, args...)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
