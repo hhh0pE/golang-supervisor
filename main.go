@@ -22,6 +22,12 @@ func OriginalExecutablePath() string {
 }
 
 func init() {
+	logFile, log_file_err := os.OpenFile("log_supervisor.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0600)
+	if log_file_err != nil {
+		panic(log_file_err)
+	}
+	log.SetOutput(logFile)
+
 	var isSupervisor, isSupervised bool
 	for _, arg := range os.Args[1:] {
 		if arg == "-supervisor" {
@@ -66,9 +72,10 @@ func init() {
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			if run_err := cmd.Run(); run_err != nil {
-				log.Println("process finished, restarting..", run_err)
+				log.Println("process finished with different from zero code, restarting..")
+				log.Println("Finished with response: ", run_err.Error())
 			} else {
-				log.Println("process finished with code 0, shut down")
+				log.Println("process finished with code 0, supervisor shutting down..")
 				os.Exit(0)
 			}
 		}
