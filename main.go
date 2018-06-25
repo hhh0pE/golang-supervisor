@@ -33,8 +33,11 @@ func init() {
 	}
 	log.SetOutput(logFile)
 
-	var isSupervisor, isSupervised bool
+	var isSupervisor, isSupervised, withoutSupervisor bool
 	for _, arg := range os.Args[1:] {
+		if arg == "-without-supervisor" {
+			withoutSupervisor = true
+		}
 		if arg == "-supervisor" {
 			isSupervisor = true
 			break
@@ -45,6 +48,9 @@ func init() {
 		}
 	}
 
+	if (withoutSupervisor) {
+		return
+	}
 	log.Println("golang-supervisor init", os.Args, os.Getpid())
 
 	if !isSupervisor && !isSupervised {
@@ -66,8 +72,8 @@ func init() {
 		var killSignalReceived = make(chan os.Signal)
 		signal.Notify(killSignalReceived, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 		go func() {
-				<-killSignalReceived
-				RunningProcess.Kill()
+			<-killSignalReceived
+			RunningProcess.Kill()
 		}()
 		args := os.Args[1:]
 		for i, arg := range args {
@@ -104,7 +110,7 @@ func init() {
 }
 
 func duplicateExecutable(suffix string) string {
-	selfFile, opening_err  := os.Open(OriginalExecutablePath())
+	selfFile, opening_err := os.Open(OriginalExecutablePath())
 	if opening_err != nil {
 		panic(opening_err)
 	}
@@ -133,8 +139,8 @@ func duplicateExecutable(suffix string) string {
 
 func addSuffix(name, suffix string) string {
 	if strings.HasSuffix(name, ".exe") {
-		return strings.TrimSuffix(name, ".exe")+"."+suffix+".exe"
+		return strings.TrimSuffix(name, ".exe") + "." + suffix + ".exe"
 	}
 	name = strings.TrimSuffix(name, ".")
-	return name + "."+suffix
+	return name + "." + suffix
 }
