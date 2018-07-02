@@ -10,6 +10,7 @@ import (
 	"time"
 	"os/signal"
 	"syscall"
+	"path/filepath"
 )
 
 var RunningProcess *os.Process
@@ -46,13 +47,19 @@ func init() {
 	}
 
 	log.Println("golang-supervisor init", os.Args, os.Getpid())
+	wd, _ := os.Getwd()
 
 	if !isSupervisor && !isSupervised {
-		newExeName := duplicateExecutable("supervisor")
+		newExePath := duplicateExecutable("supervisor")
 		args := os.Args[1:]
 		args = append(args, "-supervisor")
 
-		cmd := exec.Command(newExeName, args...)
+		os.Chdir(filepath.Dir(newExePath))
+		exeName := getExecutableName(newExePath)
+		if runtime.GOOS == "linux" {
+			exeName = "./"+exeName
+		}
+		cmd := exec.Command(exeName, args...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
@@ -68,6 +75,8 @@ func init() {
 		go func() {
 				<-killSignalReceived
 				RunningProcess.Kill()
+				RunningProcess.Signal(syscall.SIGTERM)
+				os.Exit(0)
 		}()
 		args := os.Args[1:]
 		for i, arg := range args {
@@ -77,8 +86,15 @@ func init() {
 			}
 		}
 		args = append(args, "-supervised")
+
 		for {
-			exeName := duplicateExecutable("running")
+			exePath := duplicateExecutable("running")
+			os.Chdir(filepath.Dir(exePath))
+
+			exeName := getExecutableName(exePath)
+			if runtime.GOOS == "linux" {
+				exeName = "./"+exeName
+			}
 			cmd := exec.Command(exeName, args...)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
@@ -87,6 +103,8 @@ func init() {
 				time.Sleep(time.Second)
 				continue
 			}
+
+			os.Chdir(wd)
 
 			RunningProcess = cmd.Process
 
@@ -137,4 +155,10 @@ func addSuffix(name, suffix string) string {
 	}
 	name = strings.TrimSuffix(name, ".")
 	return name + "."+suffix
+}
+
+func getExecutableName(path string) string {
+	parts := strings.Split(path, string(os.PathSeparator))
+	var name = parts[len(parts)-1]
+	return name
 }
