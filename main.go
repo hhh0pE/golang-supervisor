@@ -1,16 +1,16 @@
 package golang_supervisor
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
-	"log"
-	"io"
-	"strings"
-	"runtime"
-	"time"
 	"os/signal"
-	"syscall"
 	"path/filepath"
+	"runtime"
+	"strings"
+	"syscall"
+	"time"
 )
 
 var RunningProcess *os.Process
@@ -27,12 +27,23 @@ func OriginalExecutablePath() string {
 	return exeName
 }
 
+var logFile *os.File
+
+func writeToLog(args ...interface{}) {
+	var params []interface{}
+	params = append(params, time.Now().Format(time.Stamp))
+	for _, a := range args {
+		params = append(params, a)
+	}
+	fmt.Fprintln(logFile, params...)
+}
 func init() {
-	logFile, log_file_err := os.OpenFile("log_supervisor.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0600)
+	var log_file_err error
+	logFile, log_file_err = os.OpenFile("log_supervisor.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0600)
 	if log_file_err != nil {
 		panic(log_file_err)
 	}
-	log.SetOutput(logFile)
+	//log.SetOutput(logFile)
 
 	var isSupervisor, isSupervised, withoutSupervisor bool
 	for _, arg := range os.Args[1:] {
@@ -52,7 +63,7 @@ func init() {
 	if (withoutSupervisor) {
 		return
 	}
-	log.Println("golang-supervisor init", os.Args, os.Getpid())
+	writeToLog("golang-supervisor init", os.Args, os.Getpid())
 	wd, _ := os.Getwd()
 
 	if !isSupervisor && !isSupervised {
@@ -80,8 +91,10 @@ func init() {
 		signal.Notify(killSignalReceived, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 		go func() {
 				<-killSignalReceived
-				RunningProcess.Kill()
-				RunningProcess.Signal(syscall.SIGTERM)
+				if RunningProcess != nil {
+					RunningProcess.Kill()
+					RunningProcess.Signal(syscall.SIGTERM)
+				}
 				os.Exit(0)
 		}()
 		args := os.Args[1:]
@@ -104,7 +117,7 @@ func init() {
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			if err := cmd.Start(); err != nil {
-				log.Println("error when starting new process", err.Error())
+				writeToLog("error when starting new process", err.Error())
 				time.Sleep(time.Second)
 				continue
 			}
@@ -114,10 +127,10 @@ func init() {
 			RunningProcess = cmd.Process
 
 			if cmd_err := cmd.Wait(); cmd_err != nil {
-				log.Println("process finished with different from zero code, restarting..")
-				log.Println("Finished with response: ", cmd_err.Error())
+				writeToLog("process finished with different from zero code, restarting..")
+				writeToLog("Finished with response: ", cmd_err.Error())
 			} else {
-				log.Println("process finished with code 0, supervisor shutting down..")
+				writeToLog("process finished with code 0, supervisor shutting down..")
 				os.Exit(0)
 			}
 			RunningProcess = nil
