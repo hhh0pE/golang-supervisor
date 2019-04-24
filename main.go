@@ -42,11 +42,7 @@ func init() {
 	if flag.Lookup("test.v") != nil { // if there is gotest run - skip supervisor
 		return
 	}
-	var log_file_err error
-	logFile, log_file_err = os.OpenFile("log_supervisor.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0600)
-	if log_file_err != nil {
-		panic(log_file_err)
-	}
+
 	//log.SetOutput(logFile)
 
 	var isSupervisor, isSupervised, withoutSupervisor bool
@@ -67,6 +63,13 @@ func init() {
 	if (withoutSupervisor) {
 		return
 	}
+
+	var log_file_err error
+	logFile, log_file_err = os.OpenFile("log_supervisor.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0600)
+	if log_file_err != nil {
+		panic(log_file_err)
+	}
+
 	writeToLog("golang-supervisor init", os.Args, os.Getpid())
 	wd, _ := os.Getwd()
 
