@@ -1,6 +1,7 @@
 package golang_supervisor
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -38,6 +39,9 @@ func writeToLog(args ...interface{}) {
 	fmt.Fprintln(logFile, params...)
 }
 func init() {
+	if flag.Lookup("test.v") != nil { // if there is gotest run - skip supervisor
+		return
+	}
 	var log_file_err error
 	logFile, log_file_err = os.OpenFile("log_supervisor.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0600)
 	if log_file_err != nil {
