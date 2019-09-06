@@ -45,10 +45,11 @@ func init() {
 
 	//log.SetOutput(logFile)
 
-	var isSupervisor, isSupervised, withoutSupervisor bool
+	var withSupervisor bool
+	var isSupervisor, isSupervised bool
 	for _, arg := range os.Args[1:] {
-		if arg == "-without-supervisor" {
-			withoutSupervisor = true
+		if arg == "-with-supervisor" {
+			withSupervisor = true
 		}
 		if arg == "-supervisor" {
 			isSupervisor = true
@@ -60,7 +61,7 @@ func init() {
 		}
 	}
 
-	if (withoutSupervisor) {
+	if !withSupervisor {
 		return
 	}
 
