@@ -48,14 +48,14 @@ func init() {
 	var withSupervisor bool
 	var isSupervisor, isSupervised bool
 	for _, arg := range os.Args[1:] {
-		if arg == "-with-supervisor" {
+		if arg == "with-supervisor" || arg == "+supervisor" {
 			withSupervisor = true
 		}
-		if arg == "-supervisor" {
+		if arg == "_supervisor" {
 			isSupervisor = true
 			break
 		}
-		if arg == "-supervised" {
+		if arg == "_supervised" {
 			isSupervised = true
 			break
 		}
@@ -82,7 +82,7 @@ func init() {
 		os.Chdir(filepath.Dir(newExePath))
 		exeName := getExecutableName(newExePath)
 		if runtime.GOOS == "linux" {
-			exeName = "./"+exeName
+			exeName = "./" + exeName
 		}
 		cmd := exec.Command(exeName, args...)
 		cmd.Stdout = os.Stdout
@@ -98,12 +98,12 @@ func init() {
 		var killSignalReceived = make(chan os.Signal)
 		signal.Notify(killSignalReceived, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
 		go func() {
-				<-killSignalReceived
-				if RunningProcess != nil {
-					RunningProcess.Kill()
-					RunningProcess.Signal(syscall.SIGTERM)
-				}
-				os.Exit(0)
+			<-killSignalReceived
+			if RunningProcess != nil {
+				RunningProcess.Kill()
+				RunningProcess.Signal(syscall.SIGTERM)
+			}
+			os.Exit(0)
 		}()
 		args := os.Args[1:]
 		for i, arg := range args {
@@ -119,7 +119,7 @@ func init() {
 
 			exeName := getExecutableName(exePath)
 			if runtime.GOOS == "linux" {
-				exeName = "./"+exeName
+				exeName = "./" + exeName
 			}
 			cmd := exec.Command(exeName, args...)
 			cmd.Stdout = os.Stdout
